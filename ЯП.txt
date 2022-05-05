@@ -11,14 +11,16 @@ vector<int> measurements(int n, int counter, vector<int> values){
   return (counter != n-1) ? measurements(n, counter+1, measureCopy) : measureCopy;
 } 
 int countValue(int startInd, int finishInd, vector<int> values, int value, int count){
-  return (startInd != finishInd) ? ((values[startInd] == value) ? countValue(startInd+1, finishInd, values, value, count+1) : countValue(startInd+1, finishInd, values, value, count)) : count;
+  return (startInd != finishInd) ? ((values[startInd] == value) ? countValue(startInd+1, finishInd, values, value, count+1) : countValue(startInd+1, finishInd, values, va lue, count)) : count;
 }
 void histogram(int n, vector<int> measurements, vector<int> scanned, int ind){
+  vector<int> scanCopy {scanned};
+
   int countVal = countValue(0, measurements.size(), measurements, measurements[ind], 0);
   bool visited = (countValue(0, scanned.size(), scanned, measurements[ind], 0) == 0) ? true : false;
   visited ? cout << measurements[ind] << " " << countVal << endl : cout << "";
-    scanned.push_back(measurements[ind]);
-  return (ind != measurements.size()-1) ? histogram(n, measurements, scanned, ind+1) : void();
+  scanCopy.push_back(measurements[ind]);
+  return (ind != measurements.size()-1) ? histogram(n, measurements, scanCopy, ind+1) : void();
 }
 
 int main() {
