@@ -11,7 +11,7 @@ vector<int> measurements(int n, int counter, vector<int> values){
   return (counter != n-1) ? measurements(n, counter+1, measureCopy) : measureCopy;
 } 
 int countValue(int startInd, int finishInd, vector<int> values, int value, int count){
-  return (startInd != finishInd) ? ((values[startInd] == value) ? countValue(startInd+1, finishInd, values, value, count+1) : countValue(startInd+1, finishInd, values, va lue, count)) : count;
+  return (startInd != finishInd) ? ((values[startInd] == value) ? countValue(startInd+1, finishInd, values, value, count+1) : countValue(startInd+1, finishInd, values, value, count)) : count;
 }
 void histogram(int n, vector<int> measurements, vector<int> scanned, int ind){
   vector<int> scanCopy {scanned};
