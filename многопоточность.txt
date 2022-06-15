@@ -1,0 +1,222 @@
+#include <iostream>
+#include <future>
+#include <thread>
+#include <list>
+#include <csignal>
+#include <vector>
+#include <mutex>
+
+using namespace std;
+
+int container_capacity, group_count, tools_count;
+bool working = true;
+mutex mutex_a;
+vector<thread> thread_tools;
+
+
+struct request {
+	int class_type;
+	int priority;
+
+	request(int _class, int _priority) {
+		class_type = _class;
+		priority = _priority;
+	}
+
+	request() {
+		class_type = -1;
+		priority = -1;
+	}
+
+
+};
+
+struct tool {
+
+	int group_num;
+	int ind_group;
+	bool use_now = false;
+	request req;
+	double start_time;
+	double time;
+
+	tool(int index, int number) {
+		ind_group = index;
+		group_num = number;
+	}
+	tool() {
+		ind_group = -1;
+		group_num = -1;
+	}
+
+};
+
+
+vector<tool> tools; list<request> request_list;
+
+void stopProgram(int signal) {
+	working = false;
+}
+void initTools() {
+	for (int cnt = 0; cnt < group_count * tools_count; cnt++) {
+		tool new_tool(cnt, cnt / tools_count);
+		tools.push_back(new_tool);
+	}
+}
+
+
+request working_tool(int num) {
+	auto prior_iter = request_list.begin();
+	request prior_req;
+	bool choosen = false;
+
+	for (auto iter = request_list.begin(); iter != request_list.end(); iter++) {
+		request req = *iter;
+
+		if (req.class_type == num) {
+			if (choosen) {
+				if (req.priority > (*prior_iter).priority) { prior_iter = iter; }
+			}
+		}
+		else {
+			choosen = true;
+			prior_iter = iter;
+		}
+		if ((*prior_iter).priority == 3) { break; }
+
+	}
+	if (choosen) {
+		prior_req = *prior_iter;
+		request_list.erase(prior_iter);
+	}
+	return prior_req;
+}
+
+void working_thread(tool& _tool) {
+	while (working) {
+		bool event = false;
+		mutex_a.lock();
+
+		if (!_tool.use_now) {
+			request prior_req = working_tool(_tool.group_num);
+
+			if (prior_req.class_type != -1) {
+				event = true;
+
+				double time = 1111 + (rand() % (6666 - 1111 + 1));
+				_tool.req = prior_req;
+				_tool.time = time;
+				_tool.start_time = clock();
+				_tool.use_now = true;
+
+
+			}
+
+		}
+		else {
+			double dif_time = clock() - _tool.start_time;
+			double resul_time = _tool.time - dif_time;
+
+			if (resul_time <= 0) {
+				_tool.use_now = false;
+			}
+		}
+
+		mutex_a.unlock();
+
+		if (event) {
+			this_thread::sleep_for(chrono::milliseconds(1111 + (rand() % (6666 - 1111 + 1))));
+		}
+
+	}
+
+}
+void thread_tools_create() {
+	thread_tools.resize(tools.size());
+	for (int i = 0; i < tools.size(); i++) {
+		thread_tools[i] = thread(working_thread, ref(tools[i]));
+	}
+}
+
+
+
+request newReq() {
+	request req((rand() % (group_count)), 1 + (rand() % (3)));
+	return req;
+}
+
+void work() {
+	while (working) {
+		mutex_a.lock();
+		if (request_list.size() != container_capacity) {
+			request_list.push_back(newReq());
+		}
+		mutex_a.unlock();
+	}
+}
+
+void out(vector<tool>& tools) {
+	while (working) {
+
+		mutex_a.lock();
+		for (int i = 0; i < tools.size(); i++) {
+			if (tools[i].use_now) {
+				cout << "Прибор " << tools[i].ind_group << " (группа: " << tools[i].group_num << ") занят." << " ";
+				cout << "Приоритет заявки: " << tools[i].req.priority << "." << " ";
+				cout << "Время до завершения: " << tools[i].time - clock() + tools[i].start_time << "." << endl;
+			
+			}
+			else {
+
+				cout << "Прибор " << tools[i].ind_group << " (группа: " << tools[i].group_num << ") свободен." << endl;
+				
+			}
+		}
+		cout << "Количество элементов в очереди: " << request_list.size() << endl;
+		cout << endl;
+		mutex_a.unlock();
+
+		this_thread::sleep_for(chrono::milliseconds(4000));
+
+	}
+}
+
+
+
+
+int main() {
+	setlocale(LC_ALL, "Russian");
+	srand(time(NULL));
+	signal(SIGINT, stopProgram);
+
+	cout << "Введите емкость накопителя: ";
+	cin >> container_capacity;
+
+	cout << "Введите количество групп приборов: ";
+	cin >> group_count;
+
+	cout << "Введите количество приборов в каждой группе: ";
+	cin >> tools_count;
+
+	initTools();
+	thread_tools_create();
+
+	thread thread_generator = thread(work);
+	thread informs = thread(out, ref(tools));
+
+	thread_generator.join();
+	informs.join();
+
+	for (int i = 0; i < thread_tools.size(); i++) {
+		thread_tools[i].join();
+	}
+	
+
+
+
+	return 0;
+
+
+}
+
+
